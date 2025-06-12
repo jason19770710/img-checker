@@ -1,0 +1,77 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <title>圖片連結檢查工具</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f9f9f9; }
+    textarea { width: 100%; height: 300px; }
+    button { margin-top: 10px; padding: 8px 16px; font-size: 16px; }
+    ul { padding-left: 20px; }
+    .ok { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h2>📦 圖片連結檢查工具</h2>
+  <p>請將 HTML 原始碼貼在下方：</p>
+  <textarea id="htmlInput" placeholder="貼上 HTML 原始碼..."></textarea>
+  <br />
+  <button onclick="checkImages()">🔍 開始檢查</button>
+  <ul id="result"></ul>
+
+  <script>
+    const baseURL = 'https://24h.pchome.com.tw/sites/apple/';
+
+    function checkImages() {
+      const html = document.getElementById('htmlInput').value;
+      const lines = html.split('\n');
+      const resultList = document.getElementById('result');
+      resultList.innerHTML = '';
+
+      const ignorePatterns = [
+        /<img[^>]+class=["'](?:pc|mb)["'][^>]*src=["']\s*["']/i,
+        /background-image:\s*url\(["']?img\/bg_white\.jpg["']?\)/i
+      ];
+
+      const imgRegex = /img(?:Pc|Mb)?\s*:\s*"([^"]+)"|<img[^>]+src=["']([^"']+)["']/gi;
+
+      let found = false;
+
+      lines.forEach((line, index) => {
+        if (ignorePatterns.some(re => re.test(line))) return;
+
+        let match;
+        while ((match = imgRegex.exec(line)) !== null) {
+          const path = match[1] || match[2];
+          if (!path || path.trim() === '') continue;
+
+          const url = baseURL + path;
+          found = true;
+
+          const img = new Image();
+          img.onload = () => {
+            const li = document.createElement('li');
+            li.textContent = `✔ 第 ${index + 1} 行：圖片存在 ✅ → ${url}`;
+            li.className = 'ok';
+            resultList.appendChild(li);
+          };
+          img.onerror = () => {
+            const li = document.createElement('li');
+            li.textContent = `❌ 第 ${index + 1} 行：圖片不存在 🚫 → ${url}`;
+            li.className = 'error';
+            resultList.appendChild(li);
+          };
+          img.src = url;
+        }
+      });
+
+      if (!found) {
+        const li = document.createElement('li');
+        li.textContent = '沒有需要檢查的圖片路徑或都符合排除條件。';
+        resultList.appendChild(li);
+      }
+    }
+  </script>
+</body>
+</html>
